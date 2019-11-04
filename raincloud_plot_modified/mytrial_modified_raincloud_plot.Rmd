@@ -1,0 +1,127 @@
+---
+title: "raincloud plot, modified with reporting S.E. of the group"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+### A fun attempt to play with Raincloud Plots!
+
+First, import the data here
+```{r setup, include=FALSE, cache=TRUE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+rm(list=ls())
+
+##code to read the csv data
+file1 <- read.csv("../motivation_gamble_data.csv", header=TRUE, sep=",")
+
+##select only data from 'study1' as an example here
+df <- subset(file1, expt=="study1")
+
+#to have a glimpse of the data
+head(df,5)
+
+```
+
+
+
+Set up the needed libraries
+```{r, include=FALSE}
+
+#common library used for graph plotting in R
+library(ggplot2)
+
+#libraries specifically needed for raincloud-plot
+library(cowplot)
+library(dplyr)
+library(readr)
+
+#specify script for running raincloud-plot ('source' function read R code from a file)
+#this 'R_rainclouds.R' script was downloaded from the official RainCloudPlots repository:  https://github.com/RainCloudPlots/RainCloudPlots/tree/master/tutorial_R
+
+source("R_rainclouds.R")
+```
+
+
+Let's define a theme to make pretty plots
+```{r}
+
+raincloud_theme <- theme(
+  #axis.title.x =  element_blank(),
+  #axis.title.y =  element_blank(), 
+  axis.text = element_text(size = 14, face="bold", color="black"),
+  legend.title=element_text(size=16),
+  legend.text=element_text(size=16),
+  legend.position = "right",
+  panel.border = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.background = element_blank(),
+  panel.grid.major = element_blank(),
+  axis.line.x = element_line(colour = 'black', size=0.5, linetype='solid'),
+  axis.line.y = element_line(colour = 'black', size=0.5, linetype='solid'))
+
+
+```
+
+
+Summarising the data: in this plot we are interested in the average stimulus rating for each participant, separately for category (food vs curiosity) and decision (accept vs reject)
+
+```{r}
+
+data_by_subj <- aggregate(raw_rate~participant+category+choice, data=df, FUN=mean)
+
+data_by_subj["Decision"] <-NA
+data_by_subj$Decision[data_by_subj$choice==0] <- "Reject"
+data_by_subj$Decision[data_by_subj$choice==1] <- "Accept"
+
+```
+
+
+let's also calculate some summary statistics for each condition (i.e. 1.food-accept, 2.food-reject, 3.curiosity-accept, 4.curiosity-reject), including mean, S.D., & S.E. of rating. They will be used in plotting geom_pointrange
+
+```{r}
+
+gbq1 <- aggregate(raw_rate~category+choice, data=df, FUN=mean)
+names(gbq1)[3]<- "mean_rate"
+gbq2 <-  aggregate(raw_rate~category+choice, data=df, FUN=sd)  
+names(gbq2)[3]<- "sd_rate"
+gbq<- merge(gbq1, gbq2, by = c("category", "choice"))
+
+data.frame(gbq)
+names(gbq)=c("category","choice","mean_rate","sd_rate")
+
+gbq["se_rate"] <- gbq$sd_rate/sqrt(length(unique(df$participant)))
+
+gbq["Decision"] <-NA
+gbq$Decision[gbq$choice==0] <- "Reject"
+gbq$Decision[gbq$choice==1] <- "Accept"
+
+gbq$ymin = with(gbq, mean_rate - se_rate)
+gbq$ymax = with(gbq, mean_rate + se_rate)
+```
+
+Ready to plot?!
+```{r}
+
+g <- ggplot() + 
+  geom_flat_violin(data = data_by_subj, aes(y = raw_rate, x = category, fill=Decision), position = position_nudge(x = .2, y = 0), alpha = .7, colour=FALSE, show.legend = FALSE) +
+  geom_point(data=data_by_subj, aes(y = raw_rate, x = category, color = Decision), position = position_jitter(width=.1),size = 2, alpha = 1, show.legend = FALSE, shape=1) +
+  geom_pointrange (data=gbq, aes(y = mean_rate, x = category, ymin= ymin, ymax= ymax, color=Decision), shape=16, size=1, position = position_dodge(width=0.1)) + 
+  scale_x_discrete(labels=c("Curiosity","Food")) +
+  ylim(0,7) +
+  
+  #guides(fill=guide_legend(title="Choices")) +
+  raincloud_theme +
+  labs(x=NULL, y="Stimulus Rating")
+
+g
+
+```
+
+If you want to save the plot as an image
+```{r}
+
+ggsave("D:/Github_folder/R_ggplot_plot/rainplot_trial.jpg", width = 20, height = 20, units = "cm", dpi=300)
+
+```
