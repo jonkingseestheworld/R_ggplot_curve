@@ -11,5 +11,5 @@ The plot to be created shows the effect of different factors on individual’s a
 ![alt text](barplot/barplot_trial2.jpeg)
 
 ### modified raincloud plot
-![alt text](raincloudplot_modified/raincloudplot_mytrial.jpg)
+![alt text](raincloudplot_modified/raincloudplot_mytrial.jpeg)
 
