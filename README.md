@@ -11,13 +11,13 @@ The script (Markdown file in 'barplot' subfolder) were writen to share what I fi
 The plot to be created shows the effect of different factors on individual’s acceptance/risk-taking rate
 ![alt text](barplot/barplot_trial2.jpeg)
 
-### modified raincloud plot
+### Modified Raincloud plot
 A fun attempt to play with Raincloud Plots!
 In the example here, I modified the original plot slightly by replacing the summary statistics (for each condition) represented by the boxplot (& whiskers) with geom_pointrange using means & standard errors (SE) values.
 ![alt text](raincloudplot_modified/raincloudplot_mytrial.jpeg)
 
 
-Raincloud-plot is created by these guys:
+Raincloud-plot is created by these guys: <br/>
 Allen M, Poggiali D, Whitaker K et al. Raincloud plots: a multi-platform tool for robust data visualization [version 1; peer review: 2 approved]. Wellcome Open Res 2019, 4:63. DOI: 10.12688/wellcomeopenres.15191.1
 
 Allen M, Poggiali D, Whitaker K, Marshall TR, Kievit R. (2018) RainCloudPlots tutorials and codebase (Version v1.1). Zenodo. http://doi.org/10.5281/zenodo.3368186
