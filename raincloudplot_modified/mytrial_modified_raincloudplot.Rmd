@@ -4,6 +4,7 @@ output:
   pdf_document: default
   html_document: default
 ---
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3368186.svg)](https://doi.org/10.5281/zenodo.3368186)
 
 ### A fun attempt to play with Raincloud Plots!
 
@@ -122,6 +123,6 @@ g
 If you want to save the plot as an image
 ```{r}
 
-ggsave("D:/Github_folder/R_ggplot_plot/rainplot_trial.jpg", width = 20, height = 20, units = "cm", dpi=300)
+ggsave("rainplot_trial.jpg", width = 20, height = 20, units = "cm", dpi=300)
 
 ```

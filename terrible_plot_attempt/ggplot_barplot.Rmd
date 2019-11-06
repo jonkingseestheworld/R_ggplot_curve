@@ -1,0 +1,140 @@
+---
+title: 'An attempt to create a pretty ugly plot'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+Clear the current environment & then import the data
+```{r setup, cache=TRUE, include=TRUE}
+
+knitr::opts_chunk$set(error = TRUE)
+
+
+#clear the global environment 
+rm(list=ls())
+
+#specify the path to your dataset 
+datafile <- "gamble_data.csv"
+
+df <- read.csv(datafile, header=TRUE, sep=",")
+
+
+```
+
+
+
+Here, to plot the acceptance rate in different conditiosn
+(i.e. by averaging the responses in the 'choice' column under a combination of different factors: 1.'win_prob'; 2.'category'; 3.'Version')
+
+start with some data cleaning and preprocessing
+```{r include=TRUE}  
+
+#compile and create a dataframe that includes the mean, SD and SE of the acceptance rate
+accept_ppt_mean <- aggregate(choice ~ participant+category+win_prob+Version, data=df, FUN=mean)
+
+names(accept_ppt_mean)[length(accept_ppt_mean)]<- "mean_ppt_acceptrate"
+
+
+#summarise the mean acceptance rate across all participants
+accept_mean <- aggregate(mean_ppt_acceptrate ~ category+win_prob+Version, data=accept_ppt_mean, FUN=mean)
+names(accept_mean)[length(accept_mean)]<- "mean_accept"
+
+#compute the standard deviation of the participant's acceptance rate
+accept_sd <- aggregate(mean_ppt_acceptrate ~ category+win_prob+Version, data=accept_ppt_mean, FUN=sd)
+names(accept_sd)[length(accept_sd)]<- "sd_accept"
+
+#combining the two dataframes with mean and sd acceptance rate data together
+comb_df <- merge(accept_mean, accept_sd, by = c("category","win_prob","Version"))
+
+#formulas to compute the standard errors of means (individual differences) to be used for plotting error bars
+
+comb_df ["se_accept"] <- NA
+
+
+whichstudy1_idx <- which(comb_df$Version=="study1")
+comb_df$se_accept[comb_df$Version=="study1"] <- comb_df[whichstudy1_idx,"sd_accept"]/(sqrt(length(unique(accept_ppt_mean$participant[accept_ppt_mean$Version=="study1"]))))
+
+whichreplicate_idx <- which(comb_df$Version=="replicate")
+comb_df $se_accept[comb_df$Version=="replicate"] <- comb_df[whichreplicate_idx,"sd_accept"]/(sqrt(length(unique(accept_ppt_mean$participant[accept_ppt_mean$Version=="replicate"]))))
+
+
+```
+
+
+
+Graph plotting using ggplot
+```{r}
+
+if(!require(ggplot2))install.packages("ggplot2")
+library(ggplot2)
+
+
+#create a theme
+prettyugly_theme <- theme(
+   plot.background = element_rect(fill ="lightyellow"),
+   plot.title = element_text(size = 30, hjust = 0.25),
+    plot.subtitle = element_text(size = 20, hjust = 0.75, color = "mediumvioletred", family = "serif"),
+    plot.caption = element_text(size = 15, face = "italic", angle = 75, vjust=6, hjust=1),
+   panel.background = element_rect(fill = 'lightblue', colour = 'orangered', size = 3),
+    panel.border = element_rect(fill = NA, color = "yellow", size = 2),
+    panel.grid.major.x = element_line(color = "purple", linetype = 3),
+    panel.grid.minor.y = element_line(color = "orange", linetype = 2),
+   axis.title.x = element_text(face = "bold.italic", color = "red4"),
+    axis.title.y = element_text(family = "serif", face = "bold", size = 20, hjust = 0.25),
+    axis.text = element_text(face = "italic", size = 15, color="mediumvioletred"),
+    axis.text.x.bottom = element_text(angle = 160),
+    axis.text.y.left = element_text(angle = -40),
+    strip.background = element_rect(fill = "magenta"),
+    strip.text = element_text(color = "white", face="italic", family="mono"),
+    strip.placement = "outside",
+   legend.background = element_rect(fill = "purple4"), 
+    legend.position = "right",
+    legend.title = element_text(family = "serif", color = "white"),
+    legend.text = element_text(family = "mono", face = "italic", color = "limegreen"))
+
+
+#ggplot plotting
+nplot <- ggplot(data= comb_df, aes(x=win_prob, y=mean_accept)) +  facet_grid(.~category)+
+  geom_bar(aes(fill=Version), stat="identity",
+           position=position_dodge()) +
+  scale_fill_manual(values = c("study1" = "saddlebrown", "replicate" = "yellowgreen")) +
+  prettyugly_theme +
+  ylim(-0.1 ,1.1) + 
+  labs(title = "Check out for some awesomeness",
+       subtitle = "Acceptance rate in different conditions",
+       x = "Probability",
+       y = "mean rate",
+       caption = "FYI") 
+  
+
+
+
+#adding error bars
+limits <- aes(x=win_prob, ymax=mean_accept+se_accept, ymin=mean_accept-se_accept, fill=Version)
+
+nplot <- nplot+ geom_errorbar(limits, position=position_dodge(width=0.9), width=0.2, size=2, color='navyblue')
+
+
+#importing some images
+img <- readPNG("my_precious.png")
+g <- rasterGrob(img, interpolate=TRUE)
+nplot <- nplot +  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-0.1, ymax=0.2)
+
+
+
+#add the raw data points as well
+pos_dodg <- position_jitterdodge(jitter.width = 0.3, jitter.height = 0.001, dodge.width = 0.85)
+
+
+nplot <- nplot + geom_point(data=accept_ppt_mean, aes(x=win_prob, y=mean_ppt_acceptrate, shape=Version, color=Version),  position = pos_dodg) 
+```
+
+
+optional, to save the plot as an image
+```{r}
+
+ggsave("barplot_attpt.jpg", width = 40, height = 20, units = "cm", dpi=300)
+
+```
